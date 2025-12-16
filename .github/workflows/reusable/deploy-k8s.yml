@@ -1,0 +1,55 @@
+name: Deploy to Kubernetes
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        required: true
+        type: string
+      namespace:
+        required: true
+        type: string
+      deployment:
+        required: true
+        type: string
+      manifest-path:
+        required: false
+        type: string
+        default: './k8s'
+    secrets:
+      kubeconfig-content:
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.kubeconfig-content }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Create namespace if it doesn't exist
+        run: |
+          kubectl create namespace ${{ inputs.namespace }} --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Deploy to Kubernetes
+        run: |
+          # Update the image in the deployment
+          sed -i 's|image: .*|image: ${{ inputs.image }}|g' ${{ inputs.manifest-path }}/deployment.yaml
+          
+          # Apply the deployment
+          kubectl apply -f ${{ inputs.manifest-path }}/ -n ${{ inputs.namespace }}
+          
+          # Wait for the deployment to be ready
+          kubectl rollout status deployment/${{ inputs.deployment }} -n ${{ inputs.namespace }} --timeout=300s
