@@ -1,0 +1,39 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # Call the reusable matrix test workflow
+  test:
+    uses: ./.github/workflows/reusable/go-matrix-test.yml
+    with:
+      working-directory: "."
+
+  # Build and push Docker image (only on main branch)
+  docker:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/reusable/build-and-push-image.yml
+    with:
+      image-name: "ghcr.io/${{ github.repository }}"
+      platforms: "linux/amd64,linux/arm64"  # Multi-arch build
+    secrets:
+      registry-username: ${{ secrets.GITHUB_TOKEN }}
+      registry-password: ${{ secrets.GITHUB_TOKEN }}
+
+  # Deploy to staging (only on main branch)
+  deploy-staging:
+    needs: docker
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/reusable/deploy-k8s.yml
+    with:
+      image: "ghcr.io/${{ github.repository }}:${{ github.sha }}"
+      namespace: "inventory-staging"
+      deployment: "inventory-service"
+      manifest-path: "./k8s"
+    secrets:
+      kubeconfig-content: ${{ secrets.KUBECONFIG_STAGING }}
