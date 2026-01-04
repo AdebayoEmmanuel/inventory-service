@@ -7,10 +7,6 @@ on:
         required: false
         type: string
         default: '.'
-    go-version-file:
-        required: false
-        type: string
-        default: 'go.mod'
 
 jobs:
   test:
@@ -27,7 +23,6 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go-version }}
-          go-version-file: ${{ inputs.go-version-file }}
 
       - name: Cache Go modules
         uses: actions/cache@v3

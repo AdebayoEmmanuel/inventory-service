@@ -47,11 +47,20 @@ jobs:
           username: ${{ secrets.registry-username }}
           password: ${{ secrets.registry-password }}
 
+      - name: Set image name
+        id: image
+        run: |
+          if [[ "${{ inputs.image-name }}" == *"/"* ]]; then
+            echo "name=${{ inputs.image-name }}" >> $GITHUB_OUTPUT
+          else
+            echo "name=${{ secrets.registry-username }}/${{ inputs.image-name }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ inputs.image-name }}
+          images: ${{ steps.image.outputs.name }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr

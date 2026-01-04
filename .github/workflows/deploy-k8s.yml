@@ -19,6 +19,8 @@ on:
     secrets:
       kubeconfig-content:
         required: true
+      registry-username:
+        required: false
 
 jobs:
   deploy:
@@ -45,8 +47,15 @@ jobs:
 
       - name: Deploy to Kubernetes
         run: |
+          # Construct full image name with tag
+          if [[ "${{ inputs.image }}" == *"/"* ]]; then
+            IMAGE="${{ inputs.image }}:${{ github.sha }}"
+          else
+            IMAGE="${{ secrets.registry-username }}/${{ inputs.image }}:${{ github.sha }}"
+          fi
+          
           # Update the image in the deployment
-          sed -i 's|image: .*|image: ${{ inputs.image }}|g' ${{ inputs.manifest-path }}/deployment.yaml
+          sed -i "s|image: .*inventory-service.*|image: ${IMAGE}|g" ${{ inputs.manifest-path }}/deployment.yaml
           
           # Apply the deployment
           kubectl apply -f ${{ inputs.manifest-path }}/ -n ${{ inputs.namespace }}

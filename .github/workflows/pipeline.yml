@@ -19,11 +19,11 @@ jobs:
     if: github.ref == 'refs/heads/main'
     uses: ./.github/workflows/build-and-push-image.yml
     with:
-      image-name: "ghcr.io/${{ github.repository }}"
+      image-name: "inventory-service"  # Will be pushed to DOCKER_USERNAME/inventory-service
       platforms: "linux/amd64,linux/arm64"  # Multi-arch build
     secrets:
-      registry-username: ${{ secrets.GITHUB_TOKEN }}
-      registry-password: ${{ secrets.GITHUB_TOKEN }}
+      registry-username: ${{ secrets.REGISTRY_USERNAME }}
+      registry-password: ${{ secrets.REGISTRY_PASSWORD }}
 
   # Deploy to staging (only on main branch)
   deploy-staging:
@@ -31,9 +31,10 @@ jobs:
     if: github.ref == 'refs/heads/main'
     uses: ./.github/workflows/deploy-k8s.yml
     with:
-      image: "ghcr.io/${{ github.repository }}:${{ github.sha }}"
+      image: "inventory-service"  # Will be prepended with username
       namespace: "inventory-staging"
       deployment: "inventory-service"
       manifest-path: "./k8s"
     secrets:
       kubeconfig-content: ${{ secrets.KUBECONFIG_STAGING }}
+      registry-username: ${{ secrets.REGISTRY_USERNAME }}
