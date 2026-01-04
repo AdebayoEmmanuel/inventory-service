@@ -16,8 +16,9 @@ jobs:
   # Build and push Docker image (only on main branch)
   docker:
     needs: test
-    if: github.ref == 'refs/heads/main'
-    uses: ./.github/workflows/build-and-push-image.yml
+    if: github.ref == 'refs/heads/main'    permissions:
+      contents: read
+      packages: write    uses: ./.github/workflows/build-and-push-image.yml
     with:
       image-name: "inventory-service"  # Will be pushed to DOCKER_USERNAME/inventory-service
       platforms: "linux/amd64,linux/arm64"  # Multi-arch build
